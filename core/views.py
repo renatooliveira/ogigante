@@ -1,6 +1,6 @@
 #coding: utf-8
 from entry.models import Entry
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from entry.forms import NewEntryForm
 from recaptcha.client import captcha
 from django.conf import settings
@@ -29,19 +29,18 @@ def events(request):
 
 def new_entry(request):
     context = {}
-    if request.method == 'GET':
-        form = NewEntryForm()
-        context['form'] = form
-    if request.method == 'POST':
-        form = NewEntryForm(request.POST)
-        context['form'] = form
-        resp = captcha.submit(
-            request.POST.get('recaptcha_challenge_field'),
-            request.POST.get('recaptcha_response_field'),
-            settings.RECAPTCHA_SECRET,
-            request.META['REMOTE_ADDR']
-        )
-        if resp and form.is_valid():
-            entry = form.save()
-            entry.save()
+    form = NewEntryForm(request.POST or None)
+    context['form'] = form
+    resp = captcha.submit(
+        request.POST.get('recaptcha_challenge_field'),
+        request.POST.get('recaptcha_response_field'),
+        settings.RECAPTCHA_SECRET,
+        request.META['REMOTE_ADDR']
+    )
+    if resp and form.is_valid():
+        entry = form.save()
+        entry.save()
+        context['form'] = NewEntryForm()
+        context['success'] = True
+
     return render(request, 'new_entry.html', context)
